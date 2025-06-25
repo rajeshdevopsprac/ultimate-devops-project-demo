@@ -42,10 +42,11 @@ jobs:
       - name: Docker build & push
         uses: docker/build-push-action@v6
         with:
-          context: src/accounting
+          context: .               # 👈 entire repo
           file: src/accounting/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/accounting:${{ github.run_id }}
+
 
       - name: Update Kubernetes manifest
         run: |
