@@ -8,8 +8,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  restore:
+  build-test:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -29,44 +30,10 @@ jobs:
           cd src/accounting
           dotnet restore
 
-  build:
-    runs-on: ubuntu-latest
-    needs: restore
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
-
-      - name: Copy proto file
-        run: |
-          mkdir -p src/accounting/proto
-          cp pb/demo.proto src/accounting/proto/demo.proto
-
       - name: Build
         run: |
           cd src/accounting
           dotnet build --no-restore --configuration Release
-
-  test:
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
-
-      - name: Copy proto file
-        run: |
-          mkdir -p src/accounting/proto
-          cp pb/demo.proto src/accounting/proto/demo.proto
 
       - name: Test
         run: |
@@ -75,7 +42,8 @@ jobs:
 
   docker:
     runs-on: ubuntu-latest
-    needs: test
+    needs: build-test
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -89,7 +57,7 @@ jobs:
       - name: Docker Build & Push
         uses: docker/build-push-action@v6
         with:
-          context: .  # Full repo to access pb/demo.proto
+          context: .
           file: src/accounting/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/accounting:${{ github.run_id }}
@@ -97,6 +65,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: docker
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -108,7 +77,4 @@ jobs:
       - name: Commit updated manifest
         run: |
           git config --global user.email "rkr11391@gmail.com"
-          git config --global user.name "rajeshdevopsprac"
-          git add kubernetes/accounting/deploy.yaml
-          git commit -m "[CI] update accounting image tag"
-          git push origin HEAD:main -f
+          git config --global user.name "rajes
