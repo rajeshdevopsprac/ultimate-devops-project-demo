@@ -1,0 +1,1933 @@
+									SECTION-1
+INSTALLATIONS & PRE-REQUISITES
+a. Create an AWS account.
+b. Create an IAM user with required permissions
+c. Launch an Ec2 (t2.large) instance.
+d. Install docker on EC2. -->> on EC2
+
+go to docker website ---> install docker engine
+
+# Add Docker's official GPG key:
+sudo apt-get update
+sudo apt-get install ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+# Add the repository to Apt sources:
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+docker run hello-world ---> to check whether docker is installed correctly or not
+docker ps ---> to show the running containers.
+
+we will get an error like this "permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock: Get "http://%2Fvar%2Frun%2Fdocker.sock/v1.50/containers/json": dial unix /var/run/docker.sock: connect: permission denied" ---> which means there are no permissions granted for docker to access Ubuntu. so, to grant permissions for docker to access ubuntu.
+when we use sudo it won't show this error, but we can use sudo everytime, so we can do like this.
+
+sudo usermod -aG <groupname> <user>
+sudo usermod -aG docker ubuntu --->>  we have added ubuntu user to the docker group.
+now, logout of Ec2 instance and login back.
+exit and relogin.
+ 
+ 
+ e. Install Kubectl --->A k8s command line tool which is used to interact with kubernetes API --->on Ec2
+ install kubectl--->
+ install tools--->
+ install kubectl on linux with curl
+ 
+ Download the latest release with the command:
+ curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+
+ Validate the binary (optional)
+Download the kubectl checksum file:
+ curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
+
+Validate the kubectl binary against the checksum file:
+echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
+
+If valid, the output is:
+kubectl: OK
+
+Install kubectl
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+kubectl version --client
+Client Version: v1.33.1 --->> kubectl version
+Kustomize Version: v5.6.0
+The connection to the server localhost:8080 was refused - did you specify the right host or port? --->> server version which is k8's version. (((careful about this)))
+
+
+f. Install Terraform on EC2.
+go to required OS --->> Linux
+sudo apt-get update && sudo apt-get install -y gnupg software-properties-common
+
+Install the HashiCorp GPG key.
+wget -O- https://apt.releases.hashicorp.com/gpg | \
+gpg --dearmor | \
+sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg > /dev/null
+
+Verify the key's fingerprint.
+gpg --no-default-keyring \
+--keyring /usr/share/keyrings/hashicorp-archive-keyring.gpg \
+--fingerprint
+
+Add the official HashiCorp repository to your system. The lsb_release -cs command finds the distribution release codename for your current system, such as buster, groovy, or sid.
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+
+Download the package information from HashiCorp.
+sudo apt update
+
+Install Terraform from the new repository.
+sudo apt-get install terraform
+
+verify terraform
+terraform --version
+
+									SECTION-2
+A. RUN THE PROJECT LOCALLY ON UR LAPTOP OR EC2 USING DOCKER COMPOSE. 
+check docker compose is installed on ur machine
+docker compose -version
+ Install Git on ur machine
+ now clone the project repo from git
+ git clone <git repo URL>
+ cd <project-repo>
+ docker compose up 
+ So what it does is it will start pulling the images right.
+If the images are available because this project is, you know, a demo project that is used by Opentelemetry.
+The container images are already available.
+So they are already pushed to Docker Hub.
+That's why it is trying to pull.
+Otherwise, we can also provide our images like we can build the image and ask the docker docker compose
+to use the images that we have built just to run this project locally.
+--> docker compose up.
+
+we hve given a 8GB disk to the Ec2 instance as it isn't enough to run an application and gives and error No space left on the device.  
+
+When you're dealing with EC2 instances, the EC2 instance that we created, if you look at it.
+
+So this is the EC2 instance and the storage is only of size eight GB.
+
+But when you are working with real time applications or real applications, sometimes there can be databases,
+
+there can be volumes, and you need volume of larger sizes.
+
+So eight GB is not enough.
+
+So we ran into the same issue.
+
+No space left on the device when you know Docker is trying to pull the Pull the images.
+
+How do we deal with this?
+So what we need to do is we need to resize the volume, and we need to resize the file system as well.
+That is if you look at df-h.
+Okay.We are running into this error because slash dev slash root which is mounted on the slash.
+So this is our uh mount point where the images are getting downloaded and 92% is already used, so there is no space left More on this disk.
+That's why we are running into error.
+So step one is to go back to the instance right.
+
+This is our instance.
+
+We will go to the volume.
+step 1: we will increase the size of the volume.
+
+Step 2: we will come back and we will resize this file system.
+
+So let's start with step one.
+
+go to EC2---> Select the volume and click on the actions or you directly have here. --->Modify the volume.
+ec2 ---> volumes ---> modify the volume.
+Change the size to 30 GB and click on modify. Now just modifying it here does not mean anything.
+
+You have only modified the volume.The instance is already in use.
+
+So once the volume state also become in use, right now it's grayed out, right.
+
+This will turn into green in ten 15 minutes. Once this turns green, we will run few commands on the EC2 instance to basically resize this file system as well.
+So after some time we will see the volume state is changed to in use, right.
+So the step one is done where we updated the volume size.
+
+But still if we go back and look at df-h.
+----> df -h
+Still the file system slash dev slash root mounted on slash is 91% used, and there is no change in the available disk space.
+
+If I run lsblk to take a look at, you know, what are the different blocks available on this machine? We can see this one here XVDA.
+This typically is used when uh, the virtualization of type Xen is used. Uh AWS uses that.
+
+So XVDAis 30 GB, which is good like the volume that we have increased to.
+But this one here, XVDA1 which is mounted on slash, the one that we are using is not updated.
+It is still seven GB, right?6.8 GB.
+It's still the same.
+So what we need to do is we need to grow this partition of the file system to as much as 30 GB.
+For that we will run few commands.
+
+			********Three simple steps and you will learn how to resize your file system.*******
+First is we need to install cloud guest utils.
+ ----> sudo apt install cloud-guest-utils
+ 
+Then you run sudo Grow partition, right?
+We want to grow this partition.
+
+---->> sudo growpart /dev/xvda 1
+
+Okay, now that it is done, if you run lsblk again.
+
+You can see XVDA1, which is the first partition of this particular thing which is mounted on slash is changed to 29 GB.
+However, we are yet to run one more command because the file system is not updated.
+For that you can just run 
+
+------>>sudo resize2fs /dev/xvda1
+
+That's it.
+Once you run this and df -h, you will see available disk is changed to changed to 22 GB.
+This is how, even in real time, you will update the volume of your EC2 instance and update the file system so that the size of the volume is used.
+
+df -h
+You can see that now if I run docker compose up hyphen d, so I'll just run it in background so that
+I don't see the logs of the containers that are started, because I just want to make sure the project is running and I can access the project on my browser, right.
+
+So ----->>>>docker compose up -d.
+Let's see now if all the containers are running.
+
+
+b: understandig the security groups and access the aplication.
+oprn the required portss, we want to add rules to inbound traffic rule and add 8080 (app is running on this port as mentioned in documentation) and use the public ip of ec2:8080 on the browser to access the opentelemetry demo project.
+to access the project <public-Ip of EC2>:8080.
+
+						Section -3
+CONTAINERIZATION OF THE PROJECT:
+
+create docker files for different microservices and build the images
+docker build -t rajvrk/recommendationservice:v1 .
+push the images to registries
+
+authenticate docker CLI with registry (ex. dockerhub, quay.io, ECR etc;)
+docker login docker.io
+docker push docker.io/rajvrk/product-catalog:v1 ---> to push an product-catalog image.
+
+						SECTION-4
+DOCKER COMPOSE OVERVIEW
+how to write docker compose.yml
+it has 3 main objects
+1. services --> how to pull/ run images for microservices
+2. netwoks --> defines the network for these services
+3. volumes --> defines the volumes required for any containers.
+docker compose up -d
+
+						SECTION-5
+INFRASTRUCTURE AS A CODE USING TERRAFORM
+
+Install VSCODE in ur laptop and install required plugins ---> hashicorp terraform, yaml
+
+Terraform lifecycle:
+terraform init ---->> initialize the project
+terraform plan ---->> dry run the project
+terraform apply --->> run the project and create resources
+
+configure terraform to create resources on terraform:
+when you run Terraform apply. Terraform will make API calls with AWS and it will create the resources.
+But for Terraform to make API calls, you should authenticate with AWS, right?
+That is, Terraform should be authenticated with AWS and it will need your AWS user or credentials,
+So only if Terraform has your user credentials or your IAM credentials, then it will be able to make API calls and authenticate.
+we will login with the IAM user or the root user, whatever you want to use for this project.
+And once you are logged in, you will create the security credentials of the IAM user.
+Then we will come back to our local machine and install AWS cli. And then we will run a couple of AWS CLI commands which is AWS configure.
+
+1. go to AWS account ---> security credentials --->>access keys --->> create access keys --->AWS CLI  --->>create and save the credentials.
+2. Install AWS CLI on ur laptop --->download AWS CLI --->> documentation ---> get started --> install -->required AWS CLI on ur laptop
+3. configure AWS on ur laptop ---> aws configure --->> access keys & secret keys
+
+Once you have AWS CLI configured, then when you run the Terraform, as I have explained here, once
+you configure the credentials using AWS CLI.
+So AWS just creates ~/.aws/credentials  and you will find the credentials file. So this file has the sensitive information that is information related to your access key and secret access key.
+
+STATE FILE MANAGEMENT:
+The Terraform state file (terraform.tfstate) is a critical file used by Terraform to track the current state of the infrastructure it manages.
+Now let's try to understand why state file management is very important. So if you take a simple example let's say there is a DevOps engineer called Abhi and Abhi wrote a terraform file called main.tf. and within the Main.tf we wrote the HCL code or the HCL script to create EC2 instance and S3 bucket
+
+let's say.
+So the code is perfect.
+Abhi ran terraform init.
+The provider initialization is done that is connected to the AWS syntax is right.
+Everything is cool.
+And then Abhi also ran terraform plan to verify what is getting created.
+Once Abhi is Convinced Abby also ran Terraform apply and because of this on the AWS account, right?
+Terraform created API calls and it created one EC2 instance and S3 bucket on the AWS account of organization.
+
+What Abby has done as a DevOps engineer and once this got executed, Terraform also updated the state file as we learned in the last video.
+So Terraform updated the state file to remember that it created EC2 instance and S3 bucket.
+
+Now, after two days, another DevOps engineer of the same project.so this DevOps engineer let's say dev.
+Now this DevOps engineer goes to the Main.tf.
+Which is written by Abhi.
+So Abhi pushed this main.tf to a git repository.
+So they've downloaded the code from the git repository.
+And what they did is they've updated the main.tf.
+So there is a requirement to update the main.tf.
+So within the EC2 instance they've updated some lines.
+And within S3 bucket they've updated some lines.
+Let's say added S3 lifecycle management.
+Now when Dave tries to run terraform apply. Okay.
+Assume init is successful.
+Plan is successful.
+And when Dave tries to run Terraform apply or even terraform plan.
+What Dave sees it is again trying to create EC2 instance and it is again trying to create a S3 bucket.
+Now Dave is surprised because if Dave looks at the AWS account, write EC2 instance and S3 bucket is already created.
+
+So why?
+Terraform is again trying to create this EC2 instance and S3 bucket.
+If you think loud, or if you try to think what I told you in the previous lecture, Terraform's memory is the state file and where is the state file?
+This state file is on a local machine.
+Now Dave took the main.tf from the git repository and when Dave tries to run the main.tf, there is no state file on Dave's machine because there is no state file Terraform's memory is completely blank.
+
+So Terraform thinks that okay, I should create EC2 instance and S3 bucket, although it created that previously.
+So now this creates a discrepancy in the configuration.
+Why did this happen?
+Because state file was local to the machine of Abbey.
+Now you might ask, but Abhishek, this is a very simple problem.
+Why can't Abbey push the state file?
+Just like how Abbey pushed the source code.
+So they can also take this state file from git repository and then the problem is solved.
+No, it is not solved because state file has sensitive information.
+What does that mean?
+So state file has information like you know, it might have your load balancer configuration or it might have information like your Nat gain gay information.
+or it can have the IP addresses of your subnet.
+It can have information without mask.
+That means it will not hide any information.
+Now if you put this sensitive information to a git repository, it becomes public or it becomes public to your organization.
+Now, if everybody in your organization sees the secrets or if you push to a public repository, if everyone sees the secrets, now that becomes a security concern.
+So because of this, two problems, the first problem state file is local to the machine.
+Whoever runs the state file, it becomes local to the machine.
+And if they try to push that to the git repository, it becomes sensitive.
+So for both of these reasons, state file management has become a very important thing.
+That is how do you manage the state file?
+So to manage the state file.
+There are two concepts, right.
+One concept is backend.
+That is remote backend configuration.
+And second is state locking.
+So in the next lectures we will learn what is the concept of remote backend.
+And we will learn what is the concept of state locking.
+Now these things are best practices.
+
+REMOTE BACKEND & STATE LOCKING:
+
+That is, state file is local to the first DevOps engineers machine.
+How remote back end solves this problem.
+So if we put the same use case forward, and if we understand with the concept of remote back end.
+So again Abhi is the DevOps engineer and as a DevOps engineer I wrote this file called main.tf. and this Main.tf has the code for creating EC2 instance and code for creating S3 buckets.
+
+After verifying Terraform init Terraform plan, what Abby does is Abby executes Terraform apply.
+
+But one thing Abhi does differently this time is Abhi configures something called as remote backend. Okay, so in the main.tf or in a different file, Abhi also write the configuration for remote backend.
+
+What does that mean?
+
+That means Abhi tells Terraform that okay, apply the configuration, create resources on AWS, but
+
+only thing that you do differently.
+
+That is, it asks Terraform to store the state file.
+Not on Abhi's local disk, not on the git repository, but in S3 bucket.
+
+There are various remote backends, right?
+So we call it remote backend because it is not on Abhi's machine.
+And how Abhi tells Terraform this configuration.
+
+Either Abhi can update Main.tf or create another file called as backend.tf.
+Don't worry, we will learn writing all of these files, but for now just understand.
+So using backend or tf.
+
+Abhi explains terraform that okay, whatever is in the main.tf create on AWS, but after creating instead
+of storing the state file on my machine, just store it on a new S3 bucket.
+
+Not on this S3 bucket, right? So here to make it easy, assume EC2 and RDS.
+So S3 is one of the remote backend.
+There are different cloud providers have different remote backends on AWS.
+The popular one is S3.
+
+So now the state file will be stored in S3 bucket.
+So the advantage that you will get here next time after two days, if developer or DevOps engineer called
+develope dev clones the GitHub repository and takes this main.tf file right, which has configuration of
+EC2 and RDS.
+
+Along with that, they will also take backend.tf from GitHub right along with Main.tf.
+
+They will also clone backen.tf
+
+Now if they updates some properties of EC2 or some properties of RDS and runs Terraform plan or apply.
+
+This terraform will look at backend.tf and understand.
+
+Oh okay.
+
+So the state file is in the S3 bucket and that is my memory.
+
+Now it looks at memory and says okay EC2 is already there.
+
+RDS is already there.
+
+Dave is just trying to update few things on AWS.
+
+So this is how the backend.tf file the name can be anything, or it can also be in Main.tf, but
+just for your understanding.
+
+This way the backend.tf file will help Terraform keep its memory updated across multiple DevOps engineers or throughout the organization.
+
+Anybody runs Terraform, they don't need to have the state file locally.
+
+The centralized state file which is in S3 bucket, will serve as the Terraform memory.
+
+They just need to clone the repository and make sure they have the backend.tf and the main.tf file, which they will anyways get if they run git clone.
+
+And because it is in S3, right, not everybody will have access to S3.
+
+What you can do is you can apply a policy to S3 and say which AWS users can access.
+
+This S3 bucket and S3 also comes up with versioning lifecycle management, a lot of good features.
+
+So having a remote backend as S3 solves the big problem that is state file management of Terraform.
+If Abhishek.
+If the problem is solved, then why did you mention about other topic called state locking so that we will learn in the next lecture.
+
+STATE LOCKING:
+So why do we need another concept called state locking?
+
+This is a very simple concept basically. Sometimes, right.
+
+Because you have your Terraform code in the git repository.
+
+Right.
+
+So you have your Terraform code in the git repo.
+
+There is a chance that a b.
+
+And Dave, both of them clones the Terraform repository at once. Okay.
+
+Both of them takes the Terraform code on their local machine at the same time.
+
+And both of them updates the Main.tf.
+
+Let's say both of them updated the EC2 instance.
+
+One of the property and both of them try to run Terraform.
+
+Apply at the same time.
+
+Now the problem is that the Terraform instance on Abhishek's machine and Terraform instance on Dave's machine will try to apply the same AWS configuration, which is EC2 instance.
+
+And both of them are making API calls at the same time and they are giving AWS different information.
+
+Probably Abhi is asking to update an EC2 instance property from 1 to 2, just for example. Or, you know, Abby is asking to change the volume size from 8 to 16, whereas Dave is asking to change
+
+the volume size from 8 to 30.
+
+Now which one should terraform apply that?
+
+Is this terraform or this terraform?
+
+Both of them are making API calls.
+
+So end of the day, what should the final change be on AWS?
+
+Should the volume be updated to 16 or should the volume be updated to 30?
+
+So this is kind of a race condition or this mechanism is called as a locking mechanism. Right.
+
+So both of them are trying to apply the same configuration.
+
+This can be avoided if you use a locking mechanism. That is if one person is running Terraform apply.
+
+You know they should lock the state file.
+
+If the state file is locked.
+
+Terraform will understand.
+
+Oh, okay.
+
+So currently the state file is locked.
+
+So somebody is using that or somebody is trying to execute Terraform apply or trying to execute the Terraform configuration.
+
+So let me wait for a while.
+
+So in this case if you implement state file locking then Abby tries to update the configuration and a fraction of seconds ahead if Abby tries to run terraform apply.
+
+So state file is logged on the name of Abby.
+
+And then when Dave tries to run Terraform, apply.
+
+Let's say fraction of seconds late.
+
+So Dave's apply will not be applied.
+
+And they will see that hey Terraform state file is currently logged Abby or somebody else is using it.
+
+So you need to wait for a while.
+Simple mechanism. Right.
+
+So locking is basically somebody keeps the lock.
+
+So if Abhi runs terraform apply first fraction of seconds or even milli fraction of seconds.
+
+So terraform immediately or you know, remote backend immediately logs the state file on the name of Abhi.
+
+Now Abhi has the lock only once abhi's configuration is applied.
+
+Abhi will release the lock and once the lock is released.
+
+Now they can proceed with executing his or her configuration. So this process is called as state file locking or.
+
+It also comes under state file management.
+
+Now for locking.
+
+The popular choice on AWS is DynamoDB.
+
+Very recently Terraform also supports the locking also using S3 bucket, but this is not very widely used at this point of time. Still, people use DynamoDB.
+
+It's very simple to use a DynamoDB, right?
+
+Because in the DynamoDB you can have a table where the table says what is the state file and who owns the state file.
+
+So it will create a lock in the DynamoDB.
+
+Once this execution is done, the lock is released.
+
+So now in the DynamoDB, somebody else can apply and say that, you know, they are locking the state file.
+
+So records are maintained.
+
+Who holds the lock is maintained in the DynamoDB.
+
+And Terraform will look at this DynamoDB to understand that, okay, somebody has locked the state file
+
+without DynamoDB or without having the state locking.
+
+The problem will be two people will try to, or three people will try to apply Terraform configuration at once.
+
+Now you might say, but Abhishek, why will people run within fraction of seconds?
+
+Right?
+
+Now imagine if your Terraform execution takes 30 minutes.
+
+If you try to create ECS cluster using VPC and all.
+
+Sometimes it might take 30 minutes.
+
+Now 30 minutes is a fair amount of time, right?
+
+So during Abhi's 30 minutes, it is quite possible that they might also update that configuration.
+
+So in that cases the concept of fraction of seconds does not come into picture, but it becomes minutes of time.
+
+So that's why state locking is important.
+
+When we see that practically you will understand things much better because you will see S3 bucket in live.
+
+You will see DynamoDB in live, and they are used as remote backend and state locking.
+
+So one final thing.
+
+S3 is used as remote backend and DynamoDB is popularly used as state locking resource.
+
+Recently state locking can also be implemented using S3 bucket.
+
+But, you know, still, DynamoDB is very widely used by remote backend because having state file locally will create a lot of confusion and Terraform's memory will not be updated.
+
+So remote backend is important.
+
+And why state locking two DevOps engineers might try to run same Terraform configuration at the same time, or during the execution of first DevOps engineer.
+
+Second DevOps engineer might run.
+
+So to avoid that, we should implement state locking where state file will be locked on the first DevOps engineers name.
+
+Only once the execution is done, the lock is released and other DevOps engineer can proceed with the Terraform apply.
+
+So this both of these things come under state file management.
+
+In the next lecture we will learn how to create this S3 bucket and how to create this DynamoDB not manually using Terraform itself.
+
+CREATION OF S3 USED AS REMOTE BACKEND AND DYNAMODB AS STATE LOCKING RESOURCE.
+CREATION OF VPC USING TERRAFORM 
+CREATION OF EKS CLUSTER USING TERRAFORM USING MODULES
+INVOKING OF MODULES TO CREATE THE RESOURCES IN AWS.
+
+								SECTION 6
+							DEPLOYING PROJECT TO K8S
+A. How to connect to 1 or many Kubernetes clusters from command line ?
+
+Now Abhishek, we used or we installed kubectl in the first lectures.
+
+So if I do kubectl get nodes.
+
+No, it does not show the X cluster that I created.
+
+Why?
+
+Because by default kubectl will not know what is your cluster.
+
+So kubectl actually depends on a file called kube-config.
+
+As the name suggests, it is the kube-config file where you can provide a list of clusters in your organization or list of clusters that you want to connect to.
+
+And in this kube-config file, because there are multiple clusters, there is something called context
+
+which will tell kubectl which cluster it is connected.
+
+At this point of time, because in the kube-config you can have multiple clusters in your organization.
+
+There can be ten Kubernetes clusters, 20 Kubernetes clusters, and everything is updated in the kube-config file using the context kubectl will understand.
+
+Okay.
+
+Right now this is the cluster that I'm connected to.
+
+And you can change the context using kubectl itself and tell that.
+
+Now let's connect to this context or let's connect to this cluster right.
+
+So you can actually see that if you run kubectl config view right now kubectl says that hey the list of clusters information that I have is null.
+
+That means I don't have any information of the context.
+
+If you give me the Kubernetes clusters then I can connect to it.
+
+You can also do KUBECTL CONFIG CURRENT CONTEXT which will say out of the clusters.
+
+Of course we have null cluster.
+
+But let's say you have ten clusters.
+
+If you run this command it will tell you out of these ten clusters which one is kubectl currently connected to.
+
+And if you want to switch between the clusters, you can just use kubectl config use context and you should say the name of the context.
+
+For example, if this context name or if this cluster's context name is Abhishek, you should just say
+
+""kubectl config use context abhishek.""
+
+It says no context is available at this point.
+
+Okay, so now the big question is but Abhishek, how can I update this kube config file with my eks cluster information?
+
+Very simple.
+
+All that you need to have is aws cli installed.
+
+In the initial lectures we did not install aws cli, we actually missed it.
+
+So we will just go to the aws cli which we did same during the Terraform classes.
+
+So we will search for Linux and we will just run this commands Okay.
+
+So a prerequisite is to run sudo apt install unzip because unzip is not available out of the box and
+
+this command is using unzip hyphen y.
+
+So once you have unzip installed again just run sudo copy paste.
+
+Okay.
+
+AWS cli is installed but that does not end here.
+
+You also need to run AWS configure.
+
+We already learned how to run AWS configure, right?
+
+Just go to your AWS account with your IAM user.
+
+Take the security credentials.
+
+You also will have the security credentials on your local machine because previously when we were running
+
+the Terraform thing, we already did AWS configure.
+
+So even you can go to your local machine and look for this path.org/credentials.
+
+Okay.
+
+So I will get my credentials and let me pause the video when I run AWS configure.
+
+So I went to ~./aws credentials file on my machine that is on my laptop where I executed.
+
+You can either run cat or vim and I got the credentials.
+
+I pass that credentials to AWS configure command.
+
+Now we will run just one command.
+
+AWS eks update Kubeconfig with the name of your cluster.
+
+The name of our EKS cluster is basically.
+
+My EKS cluster and the region is ap-south-1
+
+So let's choose us.
+
+And now when I run this, it says added new context.
+
+Context is nothing but a complete Kubernetes related information.
+
+And it said it created the kube config file.
+
+Now if I run kubectl config view see you can see everything about my eks cluster.
+
+And if I run kubectl config show or sorry current context I see it said this is your current context.
+
+My EKS cluster in the ap-south-1 and this is the Arn.
+
+So I can just do kubectl get nodes and you will see that I am connected to the eks cluster.
+
+So this is how you connect your kubectl with the EKS cluster.
+
+B. KUBERNETES OVERVIEW FOR THIS PROJECT:
+Hello everyone.
+
+Welcome back.
+
+In the previous lecture, we learned how to connect to an ECS cluster from command line.
+
+At the same time we also explored kubectl.
+
+In this lecture we will focus on understanding the Kubernetes implementation for this project.
+
+That means what are the Kubernetes related tasks that we would perform for this project?
+
+Although this is not a Kubernetes tutorial series, or this is not a Kubernetes zero to hero series.
+
+Still, I will go ahead and explain what is a service account in Kubernetes and why do you need a service
+
+account?
+
+If you are deploying projects in your organization, then I will talk about deployment and service in Kubernetes.
+
+To understand about scaling in Kubernetes and service discovery, Then we will also understand how to deploy this project to Kubernetes.
+
+Specially for this step, I made things very easy for you if you go to our GitHub repository ultimate
+
+DevOps project Demo, which is the source code for this repository.
+
+And if you go to Kubernetes folder for all the 20 microservices, I created folders.
+
+And if you go to any microservice.
+
+So if you go to, let's say add microservice, which we learned how to containerize in previous lectures.
+
+So if you go to this add service you will find a deployment file as well as service file.
+
+Similarly you can go to any of these services and you will find the deployment and service file that
+
+is required.
+
+We will also take few services to understand overview of what is written in Kubernetes deployment resources.
+
+What is written in Kubernetes service these resources, and then we will learn how to expose this project
+
+to the external world using load balancer service type.
+
+Here I'll also give an overview of what are different Kubernetes service types.
+
+Then we will understand what is the difference between load balancer type as well as ingress.
+
+And we will also deploy ingress ingress controller for this project.
+
+And we will try to access the project from the external world.
+
+So we will do it two times.
+
+One is using load balancer service type and one is using ingress.
+
+Also detailed steps will be provided for ingress and ingress controller.
+
+So you don't have to worry about it.
+
+Now once this is done, and once we learn how to access this project from the external world, this
+
+is not done yet because what I am also going to do.
+
+I will show you because when you work in a customer environment, you typically deal with a domain,
+
+right?
+
+You will not randomly access the applications with any domain, but your company will have a domain
+
+like Amazon.com or Flipkart.com.
+
+So we will also learn how to get a custom domain.
+
+We will learn for that custom domain how to integrate that with ingress using AWS route 53.
+
+And we will learn how to access the application using the custom domain.
+
+So this will also be covered in the Kubernetes implementation part.
+
+Overall it is going to be end to end Kubernetes implementation.
+
+When we look at CI CD there, we will also learn how to deploy the application to Kubernetes using CD
+
+that is Argo CD.
+
+So that is another section which we are going to cover.
+
+But outside Kubernetes section because this will be part of the ci CD section.
+
+However, task is on Kubernetes, so we will learn comprehensive end to end so that you can discuss
+
+about these things in your interview.
+
+Again, before I conclude this lecture, I want to tell you, please, if you are beginner in Kubernetes,
+
+we have a very well explained Kubernetes.
+
+Zero to hero series where you can learn things even if you don't know what is Kubernetes.
+
+If you have not heard about it before, you can start with our Docker series, and then you can go to
+
+our Kubernetes series where I try to cover Kubernetes services, then troubleshooting of Kubernetes
+
+projects on Kubernetes, simple projects, service mesh security on Kubernetes, whatever you need.
+
+So if you want to learn Kubernetes comprehensively outside the scope of this project, then this is
+
+the playlist that you are looking for.
+
+See you all in the next lecture.
+
+
+C SERVICE ACCOUNT:
+How do you want to deploy your pod?
+
+It can be a deployment, statefulset or daemonset in any of these cases.
+
+Your pod should be assigned with a service account.
+
+Now the big question for beginners is but what exactly is a service account?
+
+So in general there are two things.
+
+One is user account and one is service account.
+
+If you look at the names carefully, you would understand user account is basically for users like us or for humans like us.
+
+If I want to connect to a Kubernetes cluster.
+
+So I need a user account, and that user account will have a kube config file.
+
+And using kubectl you connect to that Kubernetes cluster.
+
+So if it is AWSLoadBalancerControllerIAMa DevOps engineer, developer engineer, if they want access to the Kubernetes cluster or the Kubernetes user interface, if you have one, then you should create a user account for them, whereas service account is for services.
+
+What is service in general mean?
+
+Typically for let's say a pod, right.
+
+So if you want to deploy a pod to Kubernetes and this pod is basically a microservice or it is an application.
+
+So for this microservice or application to run on Kubernetes, just like how a user has user account, this service should have a service account by user requires permission to do something on Kubernetes.
+
+Similarly, service also requires permission to do something on Kubernetes and that permission comes through the service account.
+
+D: DEPLOYMENT
+
+terraform init
+terraform apply  ----> create VPC and EKS
+got to ec2 in which EKS is deloyed and then
+install kubectl, eksctl and aws cli
+kubectl config get-contexts
+kubectl config current-context
+aws eks update-kubeconfig --region ap-south-1 --name my-eks-cluster
+kubectl apply -f service-account.yaml
+kubectl apply -f deployment.yaml
+kubectl get pods -----> check all the microservice alication ods are running or not
+in this project, frontendproxy sevice is the one which is in public subnet so, that will be exposed using load balancer service
+to edit that service----> kubectl get svc | grep frondendproxy
+kubectl edit svc opentelemetry-demo-frontendproxy
+go to end and change sevice to LoadBalancer
+to access the application loadbalancer-id:port-no.
+
+now, we can access the application using loadbalancer service.
+			
+							SECTION-7
+CI/CD using Github actions and ArgoCD
+ CI using Github actions
+ 
+Lecture thumbnail
+29:50 / 29:55
+Up next
+67. GitHub Actions - Executing the CI
+So now that we understand the structure of GitHub workflows, let's go ahead and write the GitHub workflow
+
+for our products catalog microservice.
+
+You can either go to your GitHub repository and click on dot.
+
+GitHub will provide you an integrated Visual Studio environment.
+
+You can also get this by just changing the github.com in your URL to github.dev.
+
+But what I would personally recommend is using Visual Studio code on your machine so that you can have
+
+the cool extensions.
+
+And of course you can install the extensions on integrated environment as well, but this feels more
+
+comfortable there.
+
+I would recommend some plugins.
+
+The first one is to have the YAML plugin or the extension provided by Red hat, because GitHub actions
+
+is written in YAML.
+
+And then I would recommend to have GitHub Copilot, which can increase the pace or your learning experience
+
+two times three times.
+
+Personally, if you are learning alone, I would definitely recommend this plugin.
+
+And finally, to have the plugin provided by GitHub actions itself.
+
+This is very powerful.
+
+If you are learning GitHub actions because it comes with auto suggestion, recommendation and auto correction
+
+as well.
+
+So these are the three plugins that you should have.
+
+Now that you have it, just clone the repository to your local machine to your laptop and open that
+
+in your VS code, which I did.
+
+And first thing that you do, as per what we learned in theory, create a GitHub folder.
+
+within that GitHub.
+
+Create a folder called workflows.
+
+And once you create this folder, just place a YAML file in it.
+
+You can call it anything.
+
+I will call it as ci dot YAML.
+
+But there are so many microservices.
+
+Which CI does it refer to?
+
+If you have that thing like you can also call it as products catalog ci dot YAML.
+
+But as I mentioned multiple times in your real time, you might not have all of these microservices
+
+within the same repository.
+
+So that's why it will be less confusing.
+
+Okay.
+
+We will start with adding a comment that CI file.
+
+CI for product catalog service.
+
+This is just a comment.
+
+But the first thing that you provide is the name.
+
+Let's call it as product catalog.
+
+Sigh.
+
+And what is the build trigger?
+
+So I want this project to run on pull request specially so that I can show you how the checks are.
+
+The checks working fine?
+
+Are they failing all that thing?
+
+Right.
+
+So pull request and on the main branch obviously.
+
+But if you want more branches, you can also select that.
+
+Then comes the jobs.
+
+Okay.
+
+So what are the jobs?
+
+Just to segregate the steps we will create simple jobs and place steps in it.
+
+The first job as what we learned in theory this is totally your choice.
+
+You can just say within the jobs you can just say build and you can run all of the steps in one job
+
+also, right?
+
+Whatever we see here, everything can be Can be placed into one single job as well.
+
+So I'll create a build job and I will first say which runner it has to run on.
+
+I will choose ubuntu.
+
+That is, I am requesting GitHub actions to provide a ubuntu runner so that all the steps can be executed.
+
+If you have your own runner which is called self-hosted runner, you can also configure it.
+
+But for public open source projects, the GitHub provider runner is free, so we will use it.
+
+Okay.
+
+And coming to the steps.
+
+What are the steps?
+
+First step that we will have is to check out the code.
+
+So to check out code will we write the code.
+
+No.
+
+We will use the GitHub actions and the name for it.
+
+Let me provide name for the step called checkout code.
+
+And let me use the action.
+
+So to refer any action, you will provide the field or the key name as uses and the value as actions
+
+followed by whatever action you want to select.
+
+So we will select the action provided by GitHub that is checkout and the version of checkout action
+
+is v4.
+
+Now Abhishek, how will I know what is the action for checking out code?
+
+What is the action for Docker?
+
+It's very simple.
+
+If you go to GitHub actions documentation, you will find all the actions they support, just like Terraform.
+
+How in Terraform you will find resource block for every resource they support.
+
+Similarly the same thing.
+
+But personally I'll tell you this comes with experience.
+
+As you keep writing more CI files, you will already know what actions you want to use.
+
+Okay, now the checkout is done.
+
+What is the next step?
+
+So GitHub Copilot is asking should I set up Java?
+
+No I want you to set up go.
+
+And with a specific version that is 1.22.
+
+So it already told that okay then this is the code and we want to use the action setup go itself.
+
+So I'm fine with this particular block.
+
+So this is how you use GitHub Copilot.
+
+It will suggest you some code if you like it keep it or if you need suggestion from it, take it or
+
+update the code.
+
+So this is called AI pair programming.
+
+You are actually working with AI as your peer.
+
+Then I want you to build the project so I will not use the command.
+
+So GitHub is asking like you want this command.
+
+comment, yes, but slightly different because my particular source code go build hyphen o.
+
+I will provide the name as product catalog service.
+
+Yes, but in my case the source code is in src product catalog folder.
+
+Right?
+
+Where is it?
+
+If you go to src within src, it is in product hyphen catalog.
+
+And there we have the main dot go file.
+
+So that's why I'll say src product hyphen catalog slash main dot go.
+
+And then run some unit test.
+
+Unit test.
+
+And where do we run the unit test.
+
+Just say run.
+
+Go test again.
+
+SK product catalog.
+
+And this is the location.
+
+So these are the different steps that I wanted to have in the build job.
+
+Now let's go for the other job.
+
+Okay.
+
+So I will call the name of this job as code quality for example.
+
+Where again we will use the runner.
+
+Without runner.
+
+You cannot run the jobs.
+
+So you always need a virtual machine that is provided by GitHub.
+
+Let's use ubuntu latest itself.
+
+And let's provide the steps.
+
+What do we need first?
+
+First we need to check out the code.
+
+Right.
+
+Obviously right.
+
+So to check out the code I will say name the same action which we used before.
+
+Abhishek why are we checking out code again?
+
+Because this block is running on a different virtual machine, and this block is running on a different
+
+virtual machine.
+
+Do we need Golang to be set up?
+
+No, I don't need it.
+
+But what I need is you to run.
+
+Golang CI lint.
+
+So Golang.
+
+Clint is a tool in go to run the linting in go.
+
+Right.
+
+So that's why it is asking.
+
+Okay.
+
+Uh, I can do that.
+
+So for that, you need to run these steps.
+
+Which is totally fine.
+
+So what I'm doing is.
+
+So we will use this run command and.
+
+Just let me fix the indentation here.
+
+Right now this looks good.
+
+So we will use the run command to install The version of goal in CI and run this command so that it
+
+will execute the static code.
+
+Basically, it will check if there are any unused variables or if there is any outdated packages.
+
+All that things.
+
+And let's not use a very old version of it.
+
+Uh, 56.2 is the latest version or the most used version.
+
+How do I know?
+
+Because I have containerized and executed ci CD on multiple Golang applications.
+
+Otherwise I will just go to internet and check for the latest version of it.
+
+That's it.
+
+There is no rocket science in it.
+
+Okay, this is good.
+
+Then we'll go with the next job.
+
+Okay, so the next job in my case is the docker job.
+
+Where in the docker job again you need a runner.
+
+Every time you create a job you need a runner.
+
+Without that, GitHub cannot execute the steps.
+
+And this Docker job has a dependency, right?
+
+It depends on the build process or the code quality process.
+
+Only then you should proceed with that step.
+
+So you can say needs build.
+
+This is exactly like depends on block in Docker compose or in Terraform where you can define the dependencies.
+
+Okay, then let's start with the steps as usual.
+
+The first step.
+
+By now you know what is the first step to check out the code without checking out the code, you cannot
+
+create the Docker image.
+
+You cannot run static code analysis, or you cannot run the build process.
+
+That's why the checkout stage is common.
+
+That step is common across all the jobs of your workflow.
+
+Now this virtual machine provided by GitHub or the runner provided by GitHub.
+
+Quite obviously it will not have Docker installed.
+
+So.
+
+Hyphen.
+
+Name.
+
+Install docker.
+
+Okay.
+
+For installing Docker.
+
+What we will do is we will use a native action.
+
+That is a action that is already provided by Docker Docker slash build x action v1.
+
+So this action will install Docker for you anytime everywhere you want to install you can just use this
+
+action.
+
+Then we need to login to Docker.
+
+So you just need to know the steps.
+
+Rest.
+
+You can simply write the workflows.
+
+And if you write these workflows for 2 to 3 times you know from next time what exactly to have in the
+
+CI file.
+
+And with some documentation help you can write the workflow.
+
+Nobody in interview will worry if there is any syntax issue here, or they will not worry if there is
+
+any typo in the action or if you don't remember the action name.
+
+What they want to understand is do you note the structure or not?
+
+So for docker login we will use a login action that is provided by Docker.
+
+So GitHub actions has this mechanism where let's say you don't I mean GitHub does not provide the action.
+
+Then it will also allow the companies to develop their own custom action.
+
+As an open source developer, you can also develop some GitHub action and contribute back.
+
+So what do we need for Docker login?
+
+You all know we need docker username and not password actually.
+
+But you need docker token.
+
+I can place them here.
+
+But the problem is that you all can see it.
+
+And the other problem is that anybody who reads this YAML file.
+
+They will know my Docker credentials, which is a big red flag.
+
+And this is called DevSecOps, right where you are securing your credentials.
+
+For that what you will use is the secrets in GitHub.
+
+Very simple.
+
+You just need to go to your GitHub repo, right?
+
+Just go to this repo.
+
+In your case your repo.
+
+Probably you might have forked it or anything.
+
+Go to the settings of it.
+
+And if you scroll down you will find secrets and variables.
+
+Click on actions and here you can create the repository secrets.
+
+Abhishek, how will I get my I know my Docker username right?
+
+So I can just place my docker username in my.
+
+In my case it's Abhishek f5.
+
+Abhishek I know this, but how do I actually put my another secret, which is Docker token.
+
+Because Abhishek, I don't know what is the Docker token.
+
+It's very simple.
+
+Just go to Docker Hub.
+
+Sign in to Docker Hub with your user and click on this.
+
+Click on the account settings and within your account settings, you need to go for Personal Access
+
+tokens.
+
+And from here you will generate the Personal Access Token and place that Personal Access token within
+
+the secrets value.
+
+It will be something like this which you will place it here.
+
+Right now I put some random value, but I am going to update it when I run the workflow by pausing the
+
+video.
+
+Okay, so you have the docker username and docker token passed using the GitHub secrets, which is a
+
+DevSecOps approach.
+
+Finally, we will push this Docker image again for that.
+
+By now you might have understood just like other things.
+
+Even for Docker push.
+
+There will be a actions that is provided by Docker.
+
+So push action and the latest version is version six.
+
+If you just search for this on the internet also you will find the latest version of it.
+
+Now the big thing is for it to push okay.
+
+So you said docker login and now you are asking to docker push.
+
+But to push first it needs to build.
+
+So it can perform build and push within the same action.
+
+All that you need to do is first you should provide the context, right?
+
+Context is nothing but the folder.
+
+So in my case the folder is src See slash product catalog.
+
+Then what is the name of the file?
+
+In my case, the name of the file is Docker file.
+
+So within product catalog we have this file called Docker file.
+
+Perfect.
+
+And push is true where you are saying once the image is built just push that to the Docker Hub.
+
+What should be the tag?
+
+Abhishek.
+
+If I remember or if we remember from previous lectures, we already have it.
+
+Abhishek.
+
+If I product catalog.
+
+So now how can we push with a different tag?
+
+Very simple and very common approach is that what you will do is you will create a tag with your Docker
+
+username that is Abhishek F5 slash.
+
+Product catalog service.
+
+And instead of latest, let's just use the build number or the GitHub run ID.
+
+So basically I'm creating a tag with Abhishek FFI product catalog service and my GitHub run ID and that
+
+will be pushed to this Docker Hub.
+
+Cool.
+
+So we are only left with one final stage.
+
+That is, if all of the above stages are successful then name update.
+
+K8's.
+
+Deployment manifest which is in the Kubernetes folder.
+
+So here I have the Kubernetes folder.
+
+Within this I have products catalog.
+
+So I'm just asking to update it.
+
+How can the GitHub actions do it first?
+
+Anytime you do anything first always start with runs because even this thing has to run on a GitHub
+
+runner.
+
+And then.
+
+Oh.
+
+My bad.
+
+Uh, here.
+
+I did not first select a job.
+
+Right.
+
+I should actually start with a job where I can say, update kids, this is the job name.
+
+And within that, I have to define the runs on.
+
+Ubuntu.
+
+Hyphen.
+
+Latest.
+
+Okay, so within this I will say if there is any dependencies.
+
+Yes.
+
+First the image has to be pushed.
+
+So this job is dependent on this job.
+
+Context access might be invalid Docker username.
+
+So because it does not know uh which uh usernames that I have which variables that I have and all.
+
+So that's why it is just throwing a warning, which is totally fine.
+
+Okay, so needs is good.
+
+Then we will start writing the steps where in the step you already know what is the first step right?
+
+Always check out the code and this time we will check out the code.
+
+But to update the manifest.
+
+Till now we were only pulling the code, right?
+
+We were only checking out the code, which is totally fine.
+
+You don't need access to the repo to check out the code.
+
+For example, you can go to Kubernetes repo and you can clone the Kubernetes code.
+
+But if you want to push the code, you need access to that repo, right?
+
+That's why what we will do is this time when we check out the code, we will also grant the permissions
+
+to it.
+
+Token secret dot secrets dot GitHub.
+
+Underscore.
+
+Token.
+
+Abhishek.
+
+What exactly is this?
+
+It's very simple.
+
+It's basically your personal access token.
+
+Go to the GitHub.
+
+Right click on your user.
+
+Click on settings.
+
+Click on Developer settings, personal access token tokens classic and just create a new token.
+
+Generate new token classic okay.
+
+If you have two factor authentication you also need to provide that.
+
+Just provide a name.
+
+Uh, in this case we will just call it as what was the name that we put?
+
+We put the name as token.
+
+So the name was just token, so I'll keep it the same way.
+
+We will create the secret access token and we will actually put this in the secrets.
+
+So let me call this as token expiry as per the time you want and grant permissions to the repo, which
+
+should be good enough.
+
+But you can also grant all permissions and delete that token as soon as you are done with the project.
+
+Okay, once you grant all permissions, create on click on Generate token, copy the token and go back
+
+to the repo which you are working on.
+
+Right.
+
+So this is the repository.
+
+And in this repository again go to the settings right.
+
+Just go to Secrets and Variables Actions Repository secrets and create a new secret this time.
+
+And this is with the name token Write and copy the GitHub token that you have created.
+
+I will update this later.
+
+So overall we have three tokens or three secrets.
+
+One is the Docker username, one is the docker password, and other is basically the token which is
+
+your GitHub credentials or your git credentials.
+
+Cool.
+
+Let's go back.
+
+We have checked out only reason why we are using the GitHub token this time.
+
+Unlike the previous stages where we were only pulling the code.
+
+Here in this job, we will also push the changes to update the Kubernetes manifest for product catalog.
+
+Showcase.
+
+Checkout is done.
+
+Then simply update tag in Kubernetes deployment manifest there.
+
+To do this we will run a SCD command.
+
+Abhishek, where can I get this command if I want to do this by myself?
+
+Don't worry, by the time the video is uploaded you will also see this in this GitHub repository.
+
+Right.
+
+Ultimate DevOps project demo.
+
+This is where we have the source code.
+
+And once this passes I will also push this GitHub uh ci GitHub actions ci the dot GitHub folder completely
+
+to this repository.
+
+So when you see this repository you will find GitHub folder.
+
+And you will find the complete code here.
+
+Okay so what we need to update we will update the run ID.
+
+Okay.
+
+So this is the SCD command where I am saying replace the tag okay.
+
+With the run ID and in which file.
+
+So that is basically in the file k8's.
+
+Sorry.
+
+Kubernetes slash.
+
+Product hyphen.
+
+Catalog slash.
+
+So there is no slash.
+
+My product catalog.
+
+Slash deploy.
+
+Dot.
+
+YAML.
+
+So using SCD we are basically updating product catalog.
+
+Slash deploy YAML.
+
+And what we are updating in it.
+
+If you open the deploy file we should be.
+
+Updating this particular tag.
+
+Or we can update the complete image itself.
+
+For that I'll just say.
+
+Write image colon slash dot star.
+
+So it will just search for image line.
+
+In this entire file, there will be only one image line.
+
+Right.
+
+So image colon dot slash.
+
+That's what I mentioned.
+
+So it will only find this one line.
+
+If you search for image colon there is only one line.
+
+So SD will replace this entire line because I provided dot star.
+
+So replace this entire line with image colon right.
+
+Whatever the tag that we are going to create.
+
+So for that I need to mention right.
+
+I just need to modify this accordingly where I will say.
+
+Right.
+
+I think this should be good because in the GitHub run ID we have oh my bad, it should be Abhishek F5
+
+slash.
+
+What is it here?
+
+Product catalog.
+
+in your case.
+
+Make sure you are providing the right one.
+
+Product.
+
+Hyphen.
+
+Catalog.
+
+Colon.
+
+This I think you can get this information from the push as well.
+
+See this is Abhishek F5.
+
+This is product catalog service.
+
+It's actually pushed this to product catalog itself, right?
+
+Abhishek F5 product catalog colon GitHub dollar run ID exactly the same.
+
+So whatever the tag that we created, we pushed that and same tag I am updating here also.
+
+Abhishek F5 product hyphen catalog.
+
+Just double check right?
+
+Dollar.
+
+This I don't need double quote as well I guess.
+
+So just dollar GitHub run underscore id.
+
+If you don't want to hardcode Abhishek, you can just copy this one from here and place it here.
+
+Okay so now we are perfectly good and this should actually update once it is updated.
+
+What we need to do right.
+
+We should also push those changes right.
+
+We need to run git push for that.
+
+Commit and push changes.
+
+Okay.
+
+How do we commit and push changes.
+
+Run.
+
+Okay.
+
+There are sequence of steps that we need to do that is first run the git config.
+
+Just update it okay.
+
+Your username and the email address.
+
+I updated the email address.
+
+Now the user ID same things which you have to do when you actually run this thing locally.
+
+So I'm saying git add kubernetes slash product catalog slash deploy dot YAML.
+
+I hope it's right.
+
+Kubernetes.
+
+Yeah.
+
+Product catalog deploy dot YAML.
+
+Yep.
+
+And we can just provide a comment update product catalog image tag.
+
+And you can also just say no just to make sure people understand this is done automatically.
+
+So you can say CI okay CI is doing it.
+
+And then finally git push.
+
+That's it.
+
+So this is our GitHub actions workflow that we have written to accomplish all the stages that we discussed
+
+in the theory part.
+
+First time you might have felt overwhelming if you watched my previous videos on the YouTube channel.
+
+You might have found it very easy overall.
+
+The only difference is that as you keep practicing this, make sure you use GitHub Copilot.
+
+You will find things much simpler.
+
+CD using ArgoCD
+
+installing Argocd
+And we will run the commands to install Argo CD on the Kubernetes cluster.
+
+So for that we need steps.
+
+Just go to Argo CD docs.
+
+Okay, so in the Argo CD docs you have clear instructions on how to install using a helm chart or how
+
+to install using plain Kubernetes manifests.
+
+And there are also steps to install it as Kubernetes operator.
+
+For now, let's deploy it using the plain manifest.
+
+First we will create a namespace called Argo CD, and within that namespace we will run this YAML file
+
+provided by Argo CD.
+
+So Argo CD is one of the complex controllers out there because there are multiple services within Argo
+
+CD, one that is keeping state with the git repository, one that keeps the state of all APIs within
+
+the Kubernetes cluster, one that is hosting the Argo CD UI, and one that is taking care of your oidc.
+
+So overall, it's a very complex controller.
+
+That's why you have a lot of resources that are getting deployed as an end user.
+
+You don't have to worry about it because as an end user, you just have to use Argo CD.
+
+In that perspective, the user experience is very simple.
+
+I have also covered all of that in the GitOps and Argo CD playlist.
+
+Even if you want to learn from a developer point of view or understand the architecture of Argo CD.
+
+However, that is not very relevant to this lecture.
+
+Now let's see if Argo CD is installed.
+
+Stalled kubectl get pods hyphen n Argo CD.
+
+Just wait for all the pods to be in the running state and also verify.
+
+Kubectl get svc hyphen n Argo CD where you have different services of argo CD r.
+
+Primary focus is this one.
+
+Argo CD server which hosts the user interface of Argo CD.
+
+Now what we will do is we will just run kubectl edit svc Argo CD server hyphen n argo CD.
+
+And what we will do is we will just change the type to load balancer.
+
+Abhishek, can I go ahead and create ingress as what we learned in the previous sections?
+
+For sure.
+
+You can also create ingress because we already have Alb controller Installed on this Kubernetes cluster.
+
+If you are interested, you can do that.
+
+With interest of time, I am exposing it as load balancer service type.
+
+So kubectl get svc hyphen n argo CD.
+
+The load balancer service type is created.
+
+However, we know it will take some time.
+
+Initially for the load balancer to come up.
+
+So we will just wait for 1 to 2 minutes.
+
+And once Argo CD user interface is accessible.
+
+We will then proceed with configuring it with our git repository and automatically.
+
+Deploying the new version to K8's cluster.
+
+So after two minutes roughly I can see that.
+
+Now if I go to the advanced section, I am able to access the Argo CD user interface.
+
+As the As the final step, we will learn how to log into it, right?
+
+So to log into Argo CD, just go back to your terminal and run cube CTL get secrets hyphen n Argo CD.
+
+And you should see a secret called Argo CD initial admin secret.
+
+Just a uh, fun fact, I implemented this feature in Argo CD, right?
+
+I contributed this back long back to Argo CD, where the initial admin secret was set up.
+
+So yeah, that was just a fun fact.
+
+So now let's do cube CTL.
+
+So we got the secret name.
+
+So let's just do cube CTL, edit a secret.
+
+Or you can also do cube CTL describe secret the secret name followed by hyphen n Argo CD.
+
+Okay.
+
+Doesn't show up in describe my bad.
+
+So you just have to do cube ctl uh, edit secret right.
+
+And here, copy this, this one.
+
+And you know, secrets are base 64 encoded.
+
+So you can just run echo hyphen N or echo base 64 hyphen hyphen decode.
+
+So this is the password.
+
+Do not copy ubuntu.
+
+Or you can just provide echo hyphen n.
+
+But yeah that's okay.
+
+Just ignore ubuntu here and just copy it till the point.
+
+Now username is admin and password is this sign in.
+
+That's it.
+
+You are logged into the Argo CD.
+
+One thing that I have to explain you, Argo CD does not have to be on the same cluster, only we are
+
+creating in the same cluster because, you know, we just have one cluster.
+
+But in your organization, if you have multiple clusters, you can keep Argo CD in a centralized cluster
+
+or at a centralized location and deploy that version to multiple other clusters.
+
+Argo CD is capable of that using one Argo CD.
+
+You can deploy the change to multiple clusters.
+
+That's what I explained in this video.
+
+So and this model is called HubSpot model.
+
+So now that we have everything ready in the next lecture, that is final lecture of CI CD.
+
+Let's see how to configure Argo CD to this git repository, the one that we have here.
+
+And if Argo CD can automatically pick up the new image because we have old image on this Kubernetes
+
+cluster, the new image that is created is Abhishek F5.
+
+So let's see if Argo CD can pick up the new image and deploy that to this cluster.
+
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+after installing Argocd, kubectl get pods -n argocd  ---let all the pods running
+kubectl get svc -n argocd  --->> you'll see argocd server
+edit argocd server ---->> kubectl edit svc argocd server -n argocd
+change the loadbalancer type from clusterIp to LoadBalancer.
+
+
+kubectl get svc -n argocd  ---->> get the loadbalancer and try with the browser
+login to argocd UI using admin as username and get the password from the following steps:
+kubectl get secrets -n argocd
+use argocd-initial-admin-secret
+kubectl edit secret argocd-initial-adminsecret.take the password and use echo <password> | base64 --decode
+copy and use the password to login to argocd UI.
+
+finally create an application.
+
+
+
+
+
