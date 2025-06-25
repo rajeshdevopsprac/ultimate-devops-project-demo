@@ -9,25 +9,30 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
         with:
-          go-version: 1.22
+          dotnet-version: '8.0.x' # or 6.0.x / 7.0.x if you're using a different version
+
+      - name: Restore dependencies
+        run: |
+          cd src/accounting
+          dotnet restore
 
       - name: Build
         run: |
           cd src/accounting
-          go mod download
-          go build -o accounting-service main.go
+          dotnet build --no-restore --configuration Release
 
-      - name: Run tests
+      - name: Test
         run: |
           cd src/accounting
-          go test ./...
+          dotnet test --no-build --verbosity normal
 
       - name: Docker build & push
         uses: docker/build-push-action@v6
@@ -48,4 +53,3 @@ jobs:
           git add kubernetes/accounting/deploy.yaml
           git commit -m "[CI] update accounting image tag"
           git push origin HEAD:main -f
-
