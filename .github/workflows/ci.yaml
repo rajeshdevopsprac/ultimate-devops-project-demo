@@ -2,9 +2,9 @@
 
 name: product-catalog-ci
 
-on: 
-    pull_request:
-        branches:
+on:
+  workflow_dispatch:
+  branches:
         - main
 
 jobs:
