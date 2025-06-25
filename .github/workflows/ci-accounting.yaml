@@ -6,6 +6,7 @@ on:
   push:
     paths:
       - 'src/accounting/**'
+  workflow_dispatch:    # ← Add this line
 
 jobs:
   build:
