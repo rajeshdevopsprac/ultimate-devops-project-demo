@@ -1,0 +1,20 @@
+run:
+  timeout: 3m
+
+linters:
+  enable:
+    - govet
+    - staticcheck
+    - gosimple
+    - unused
+
+issues:
+  exclude-rules:
+    - path: "main.go"
+      text: "func `createClient` is unused"
+
+    - path: "main.go"
+      text: "S1039: unnecessary use of fmt.Sprintf"
+
+    - path: "main.go"
+      text: "grpc.DialContext is deprecated"
