@@ -4,9 +4,7 @@ name: product-catalog-ci
 
 on:
   workflow_dispatch:
-           branches:
-        - main
-
+  
 jobs:
     build:
         runs-on: ubuntu-latest
