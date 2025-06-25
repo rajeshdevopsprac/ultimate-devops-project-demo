@@ -17,12 +17,17 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x' # or 6.0.x / 7.0.x if you're using a different version
+          dotnet-version: '8.0.x'
 
       - name: Restore dependencies
         run: |
           cd src/accounting
           dotnet restore
+
+      - name: Copy proto file
+        run: |
+          mkdir -p src/accounting/proto
+          cp pb/demo.proto src/accounting/proto/demo.proto
 
       - name: Build
         run: |
