@@ -29,7 +29,7 @@ jobs:
           cd src/cart
           dotnet build cart.csproj --no-restore --configuration Release
 
-      # Optional: Add unit test step if applicable
+      # Optional: Run unit tests if available
       # - name: Run tests
       #   run: |
       #     cd src/cart
