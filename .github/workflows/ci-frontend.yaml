@@ -20,27 +20,29 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install dependencies
-        run: |
-          cd src/frontend
-          npm install
-
       - name: Copy proto file
         run: |
           mkdir -p src/frontend/protos
           cp pb/demo.proto src/frontend/protos/demo.proto
 
+      - name: Install dependencies
+        run: |
+          cd src/frontend
+          npm ci
+
+      - name: Generate proto files
+        run: |
+          cd src/frontend
+          npx grpc_tools_node_protoc \
+            --js_out=import_style=commonjs,binary:./protos \
+            --grpc_out=grpc_js:./protos \
+            --ts_out=grpc_js:./protos \
+            -I ../../pb ../../pb/demo.proto
+
       - name: Build
         run: |
           cd src/frontend
           npm run build
-
-      # Skip test step if no tests are defined
-      # Uncomment below if you add tests later
-      # - name: Test
-      #   run: |
-      #     cd src/frontend
-      #     npm test
 
   docker:
     runs-on: ubuntu-latest
@@ -74,12 +76,12 @@ jobs:
 
       - name: Update Kubernetes manifest
         run: |
-          sed -i "s|image: .*|image: ${{ secrets.DOCKER_USERNAME }}/frontend:${{ github.run_id }}|" kubernetes/frontend/deploy.yaml
+          sed -i "s|image: .*|image: ${{ secrets.DOCKER_USERNAME }}/frontend:${{ github.run_id }}|" kubernetes/frontendproxy/deploy.yaml
 
       - name: Commit updated manifest
         run: |
           git config --global user.email "rkr11391@gmail.com"
           git config --global user.name "rajeshdevopsprac"
-          git add kubernetes/frontend/deploy.yaml
+          git add kubernetes/frontendproxy/deploy.yaml
           git commit -m "[CI] update frontend image tag"
           git push origin HEAD:main -f
