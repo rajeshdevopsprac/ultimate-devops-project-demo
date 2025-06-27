@@ -21,20 +21,24 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
       - name: Copy proto file
         run: |
           mkdir -p src/ad/proto
           cp pb/demo.proto src/ad/proto/demo.proto
 
+      - name: Grant execute permission for gradlew
+        run: chmod +x src/ad/gradlew
+
       - name: Build with Gradle
-        run: ./gradlew installDist -PprotoSourceDir=./proto
+        run: |
+          cd src/ad
+          ./gradlew installDist -PprotoSourceDir=./proto
 
       # Optional: Add Gradle test step if unit tests exist
       # - name: Run tests
-      #   run: ./gradlew test
+      #   run: |
+      #     cd src/ad
+      #     ./gradlew test
 
   docker:
     runs-on: ubuntu-latest
