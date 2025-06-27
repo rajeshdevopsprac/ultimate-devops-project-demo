@@ -15,40 +15,33 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install build essentials and dependencies
         run: |
           sudo apt update
-          sudo apt install -y build-essential cmake protobuf-compiler libprotobuf-dev
+          sudo apt install -y build-essential cmake git autoconf libtool pkg-config unzip
+
+      - name: Install gRPC and Protobuf
+        run: |
+          # Install Protobuf
+          git clone --recurse-submodules -b v24.0 https://github.com/protocolbuffers/protobuf
+          cd protobuf
+          mkdir build && cd build
+          cmake .. && make -j$(nproc)
+          sudo make install
+          sudo ldconfig
+          cd ../..
 
           # Install gRPC
-          git clone --recurse-submodules -b v1.60.0 https://github.com/grpc/grpc
+          git clone --recurse-submodules -b v1.62.0 https://github.com/grpc/grpc
           cd grpc
-          mkdir -p cmake/build
-          cd cmake/build
-          cmake ../..
+          mkdir -p cmake/build && cd cmake/build
+          cmake ../.. -DgRPC_INSTALL=ON -DgRPC_BUILD_TESTS=OFF
           make -j$(nproc)
           sudo make install
-          cd ../../..
+          cd ../../../
 
-          # Install Google Test (GTest)
-          git clone https://github.com/google/googletest.git
-          cd googletest
-          mkdir build && cd build
-          cmake ..
-          make -j$(nproc)
-          sudo make install
-          cd ../..
-
-          # Install OpenTelemetry C++
-          git clone https://github.com/open-telemetry/opentelemetry-cpp.git
-          cd opentelemetry-cpp
-          mkdir build && cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Release
-          make -j$(nproc)
-          sudo make install
-          cd ../..
-
-          # Install Google Benchmark
+      - name: Install Google Benchmark
+        run: |
           git clone https://github.com/google/benchmark.git
           cd benchmark
           git clone https://github.com/google/googletest.git
@@ -58,11 +51,27 @@ jobs:
           sudo make install
           cd ../..
 
+      - name: Install OpenTelemetry C++
+        run: |
+          git clone https://github.com/open-telemetry/opentelemetry-cpp.git
+          cd opentelemetry-cpp
+          mkdir build && cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
+          make -j$(nproc)
+          sudo make install
+          cd ../..
+
+      - name: Copy proto file
+        run: |
+          mkdir -p src/currency/proto
+          cp pb/demo.proto src/currency/proto/demo.proto
+
       - name: Build Currency Service
         run: |
           cd src/currency
           mkdir -p build
           cd build
+          export CMAKE_PREFIX_PATH="/usr/local;/usr/local/lib/cmake"
           cmake ..
           make -j$(nproc)
 
@@ -83,7 +92,7 @@ jobs:
       - name: Docker Build & Push
         uses: docker/build-push-action@v6
         with:
-          context: src/currency
+          context: .
           file: src/currency/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/currency:${{ github.run_id }}
