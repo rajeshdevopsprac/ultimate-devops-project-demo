@@ -14,15 +14,32 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake g++ protobuf-compiler
+          sudo apt-get install -y cmake g++ autoconf libtool pkg-config git
 
-      - name: Debug - List repository structure
+      - name: Install gRPC and Protobuf
         run: |
-          pwd
-          ls -R src/currency
+          # Install Protobuf
+          git clone --depth=1 --branch v21.12.0 https://github.com/protocolbuffers/protobuf.git
+          cd protobuf/cmake
+          mkdir build && cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release
+          make -j$(nproc)
+          sudo make install
+          cd ../../..
+
+          # Install gRPC
+          git clone --depth=1 --branch v1.62.0 https://github.com/grpc/grpc
+          cd grpc
+          git submodule update --init
+          mkdir -p cmake/build
+          cd cmake/build
+          cmake ../.. -DCMAKE_BUILD_TYPE=Release -DgRPC_INSTALL=ON -DgRPC_BUILD_TESTS=OFF
+          make -j$(nproc)
+          sudo make install
+          cd ../../..
 
       - name: Build Currency Service
         run: |
@@ -31,8 +48,6 @@ jobs:
           cd build
           cmake ..
           make
-
-      # Optional: Add unit tests here if available
 
   docker:
     runs-on: ubuntu-latest
