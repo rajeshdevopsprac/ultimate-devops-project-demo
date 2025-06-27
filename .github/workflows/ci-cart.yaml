@@ -4,7 +4,6 @@ on:
   push:
     paths:
       - 'src/cart/**'
-      - 'tests/**'
   workflow_dispatch:
 
 jobs:
@@ -18,17 +17,23 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'  # Adjust if targeting different .NET version
+          dotnet-version: '8.0.x'  # Adjust if targeting a different .NET version
 
       - name: Restore dependencies
-        run: dotnet restore src/cart/cart.csproj
+        run: |
+          cd src/cart
+          dotnet restore cart.csproj
 
       - name: Build
-        run: dotnet build src/cart/cart.csproj --no-restore --configuration Release
+        run: |
+          cd src/cart
+          dotnet build cart.csproj --no-restore --configuration Release
 
-      # Optional: Run unit tests if available
+      # Optional: Add unit test step if applicable
       # - name: Run tests
-      #   run: dotnet test src/cart/cart.csproj --no-build --configuration Release
+      #   run: |
+      #     cd src/cart
+      #     dotnet test cart.csproj --no-build --configuration Release
 
   docker:
     runs-on: ubuntu-latest
@@ -47,7 +52,7 @@ jobs:
       - name: Docker Build & Push
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: src/cart
           file: src/cart/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/cart:${{ github.run_id }}
