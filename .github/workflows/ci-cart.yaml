@@ -3,9 +3,8 @@ name: ci-cart
 on:
   push:
     paths:
-      - 'src/**'
+      - 'src/cart/**'
       - 'tests/**'
-      - 'cart.sln'
   workflow_dispatch:
 
 jobs:
@@ -19,17 +18,17 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'  # Adjust to your target framework if different
+          dotnet-version: '8.0.x'  # Adjust if targeting different .NET version
 
       - name: Restore dependencies
-        run: dotnet restore cart.sln
+        run: dotnet restore src/cart/cart.csproj
 
       - name: Build
-        run: dotnet build cart.sln --no-restore --configuration Release
+        run: dotnet build src/cart/cart.csproj --no-restore --configuration Release
 
-      # Optional: Add test step if tests exist
+      # Optional: Run unit tests if available
       # - name: Run tests
-      #   run: dotnet test cart.sln --no-build --configuration Release
+      #   run: dotnet test src/cart/cart.csproj --no-build --configuration Release
 
   docker:
     runs-on: ubuntu-latest
