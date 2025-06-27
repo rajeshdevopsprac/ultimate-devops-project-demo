@@ -4,10 +4,11 @@ on:
   push:
     paths:
       - 'src/frontend/**'
+      - 'pb/demo.proto'
   workflow_dispatch:
 
 jobs:
-  build:
+  build-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -24,19 +25,26 @@ jobs:
           cd src/frontend
           npm install
 
+      - name: Copy proto file
+        run: |
+          mkdir -p src/frontend/protos
+          cp pb/demo.proto src/frontend/protos/demo.proto
+
       - name: Build
         run: |
           cd src/frontend
           npm run build
 
-      - name: Test
-        run: |
-          cd src/frontend
-          npm test || echo "No test script defined, skipping tests."
+      # Skip test step if no tests are defined
+      # Uncomment below if you add tests later
+      # - name: Test
+      #   run: |
+      #     cd src/frontend
+      #     npm test
 
   docker:
     runs-on: ubuntu-latest
-    needs: build
+    needs: build-test
 
     steps:
       - name: Checkout code
