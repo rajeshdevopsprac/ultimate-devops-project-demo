@@ -17,11 +17,11 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
+          node-version: '20'
 
       - name: Install dependencies
         working-directory: src/flagd-ui
-        run: npm install
+        run: npm ci
 
       - name: Build
         working-directory: src/flagd-ui
@@ -29,7 +29,7 @@ jobs:
 
       - name: Test
         working-directory: src/flagd-ui
-        run: npm run test || echo "No tests defined"
+        run: npm test
 
   docker:
     runs-on: ubuntu-latest
@@ -48,8 +48,8 @@ jobs:
       - name: Docker Build & Push
         uses: docker/build-push-action@v6
         with:
-          context: src/flagd-ui
-          file: src/flagd-ui/Dockerfile
+          context: ./src/flagd-ui
+          file: ./src/flagd-ui/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/flagd-ui:${{ github.run_id }}
 
@@ -61,23 +61,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup kubectl
-        uses: azure/setup-kubectl@v3
-        with:
-          version: 'latest'
-
-      - name: Configure Kubeconfig
-        run: |
-          mkdir -p ~/.kube
-          echo "${{ secrets.KUBECONFIG_CONTENT }}" > ~/.kube/config
-
-      - name: Update Kubernetes manifest image tag
+      - name: Update Kubernetes manifest
         run: |
           sed -i "s|image: .*|image: ${{ secrets.DOCKER_USERNAME }}/flagd-ui:${{ github.run_id }}|" kubernetes/flagd-ui/deploy.yaml
-
-      - name: Deploy to Kubernetes
-        run: |
-          kubectl apply -f kubernetes/flagd-ui/deploy.yaml
 
       - name: Commit updated manifest
         run: |
