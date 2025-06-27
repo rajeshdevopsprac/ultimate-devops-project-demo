@@ -50,15 +50,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Debug - Check proto file exists
-        run: |
-          ls -R pb
-
-      - name: Copy demo.proto to service directory
-        run: |
-          mkdir -p src/cart/src/proto
-          cp pb/demo.proto src/cart/src/proto/demo.proto
-
       - name: Docker Login
         uses: docker/login-action@v3
         with:
@@ -68,8 +59,8 @@ jobs:
       - name: Docker Build & Push
         uses: docker/build-push-action@v6
         with:
-          context: src/cart/src
-          file: src/cart/src/Dockerfile  # Adjust if Dockerfile is elsewhere
+          context: .                         # ✅ build context is repo root to include pb/
+          file: src/cart/src/Dockerfile      # ✅ Dockerfile path relative to repo root
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/cart:${{ github.run_id }}
 
