@@ -4,28 +4,29 @@ on:
   push:
     paths:
       - 'src/frontend-proxy/**'
-      - 'src/frontend-proxy/envoy.tmpl.yaml'
   workflow_dispatch:
 
 jobs:
-  build-test:
+  build:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build validation
+      - name: Install dependencies
         run: |
-          echo "No build step defined for frontend-proxy. Add build steps here if required."
-          
-      - name: Test placeholder
+          cd src/frontend-proxy
+          npm install
+
+      - name: Build
         run: |
-          echo "No test suite defined for frontend-proxy. Add tests here if available."
+          cd src/frontend-proxy
+          npm run build || echo "No build script defined, skipping build."
 
   docker:
     runs-on: ubuntu-latest
-    needs: build-test
+    needs: build
 
     steps:
       - name: Checkout code
@@ -55,12 +56,12 @@ jobs:
 
       - name: Update Kubernetes manifest
         run: |
-          sed -i "s|image: .*|image: ${{ secrets.DOCKER_USERNAME }}/frontend-proxy:${{ github.run_id }}|" kubernetes/frontend-proxy/deploy.yaml
+          sed -i "s|image: .*|image: ${{ secrets.DOCKER_USERNAME }}/frontend-proxy:${{ github.run_id }}|" ultimate-devops-project-demo/kubernetes/frontendproxy/deploy.yaml
 
       - name: Commit updated manifest
         run: |
           git config --global user.email "rkr11391@gmail.com"
           git config --global user.name "rajeshdevopsprac"
-          git add kubernetes/frontend-proxy/deploy.yaml
+          git add ultimate-devops-project-demo/kubernetes/frontendproxy/deploy.yaml
           git commit -m "[CI] update frontend-proxy image tag"
           git push origin HEAD:main -f
