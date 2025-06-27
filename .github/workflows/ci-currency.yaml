@@ -15,44 +15,38 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install build essentials and dependencies
+      - name: Install build essentials, upgrade CMake, and dependencies
         run: |
           sudo apt update
-          sudo apt install -y build-essential cmake git autoconf libtool pkg-config unzip
+          sudo apt install -y build-essential git autoconf libtool pkg-config unzip wget cmake libgtest-dev
 
-      - name: Install gRPC and Protobuf
-        run: |
-          # Install Protobuf
-          git clone --recurse-submodules -b v24.0 https://github.com/protocolbuffers/protobuf
-          cd protobuf
-          mkdir build && cd build
-          cmake .. && make -j$(nproc)
-          sudo make install
-          sudo ldconfig
-          cd ../..
+          # Upgrade cmake to ≥3.27
+          wget https://github.com/Kitware/CMake/releases/download/v3.27.9/cmake-3.27.9-linux-x86_64.sh
+          chmod +x cmake-3.27.9-linux-x86_64.sh
+          sudo ./cmake-3.27.9-linux-x86_64.sh --skip-license --prefix=/usr/local
+          cmake --version
 
-          # Install gRPC
-          git clone --recurse-submodules -b v1.62.0 https://github.com/grpc/grpc
-          cd grpc
-          mkdir -p cmake/build && cd cmake/build
-          cmake ../.. -DgRPC_INSTALL=ON -DgRPC_BUILD_TESTS=OFF
-          make -j$(nproc)
-          sudo make install
-          cd ../../../
-
-      - name: Install Google Benchmark
-        run: |
+          # Install Benchmark
           git clone https://github.com/google/benchmark.git
           cd benchmark
-          git clone https://github.com/google/googletest.git
+          cmake -E make_directory "build"
+          cmake -E chdir "build" cmake -DCMAKE_BUILD_TYPE=Release -DBENCHMARK_DOWNLOAD_DEPENDENCIES=ON ..
+          cmake --build build --config Release
+          sudo cmake --install build
+          cd ..
+
+          # Install Protobuf
+          git clone --branch v24.3 https://github.com/protocolbuffers/protobuf.git
+          cd protobuf
+          git submodule update --init --recursive
           mkdir build && cd build
           cmake .. -DCMAKE_BUILD_TYPE=Release
           make -j$(nproc)
           sudo make install
+          sudo ldconfig
           cd ../..
 
-      - name: Install OpenTelemetry C++
-        run: |
+          # Install OpenTelemetry C++
           git clone https://github.com/open-telemetry/opentelemetry-cpp.git
           cd opentelemetry-cpp
           mkdir build && cd build
@@ -66,12 +60,11 @@ jobs:
           mkdir -p src/currency/proto
           cp pb/demo.proto src/currency/proto/demo.proto
 
-      - name: Build Currency Service
+      - name: Build currency service
         run: |
           cd src/currency
           mkdir -p build
           cd build
-          export CMAKE_PREFIX_PATH="/usr/local;/usr/local/lib/cmake"
           cmake ..
           make -j$(nproc)
 
