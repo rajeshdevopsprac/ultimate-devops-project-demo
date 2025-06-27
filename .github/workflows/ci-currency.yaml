@@ -18,9 +18,10 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y build-essential cmake protobuf-compiler libprotobuf-dev libgtest-dev
+          sudo apt install -y build-essential cmake protobuf-compiler libprotobuf-dev
 
-          # Build and install GTest
+          # Install GTest
+          sudo apt install -y libgtest-dev
           cd /usr/src/gtest
           sudo cmake .
           sudo make
@@ -40,6 +41,16 @@ jobs:
           # Install OpenTelemetry C++
           git clone https://github.com/open-telemetry/opentelemetry-cpp.git
           cd opentelemetry-cpp
+          mkdir build && cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release
+          make -j$(nproc)
+          sudo make install
+          cd ../..
+
+          # Install Google Benchmark
+          git clone https://github.com/google/benchmark.git
+          cd benchmark
+          git clone https://github.com/google/googletest.git
           mkdir build && cd build
           cmake .. -DCMAKE_BUILD_TYPE=Release
           make -j$(nproc)
