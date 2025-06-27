@@ -18,7 +18,14 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install -y build-essential cmake protobuf-compiler libprotobuf-dev
+          sudo apt install -y build-essential cmake protobuf-compiler libprotobuf-dev libgtest-dev
+
+          # Build and install GTest
+          cd /usr/src/gtest
+          sudo cmake .
+          sudo make
+          sudo cp lib/*.a /usr/lib
+          cd ~
 
           # Install gRPC
           git clone --recurse-submodules -b v1.60.0 https://github.com/grpc/grpc
@@ -30,8 +37,7 @@ jobs:
           sudo make install
           cd ../../..
 
-      - name: Install OpenTelemetry C++
-        run: |
+          # Install OpenTelemetry C++
           git clone https://github.com/open-telemetry/opentelemetry-cpp.git
           cd opentelemetry-cpp
           mkdir build && cd build
@@ -40,18 +46,13 @@ jobs:
           sudo make install
           cd ../..
 
-      - name: Build currency service
+      - name: Build Currency Service
         run: |
           cd src/currency
           mkdir -p build
           cd build
           cmake ..
-          make
-
-      - name: Run tests
-        run: |
-          cd src/currency/build
-          echo "No explicit tests defined for currency service build."
+          make -j$(nproc)
 
   docker:
     runs-on: ubuntu-latest
