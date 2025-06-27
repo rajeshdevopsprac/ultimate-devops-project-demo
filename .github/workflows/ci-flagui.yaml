@@ -48,8 +48,8 @@ jobs:
       - name: Docker Build & Push
         uses: docker/build-push-action@v6
         with:
-          context: ./src/flagd-ui
-          file: ./src/flagd-ui/Dockerfile
+          context: .
+          file: src/flagd-ui/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/flagd-ui:${{ github.run_id }}
 
