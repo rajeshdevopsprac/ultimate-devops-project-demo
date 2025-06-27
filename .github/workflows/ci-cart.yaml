@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'src/cart/**'
+      - 'pb/**'
   workflow_dispatch:
 
 jobs:
@@ -17,12 +18,13 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'  # Adjust if targeting a different .NET version
+          dotnet-version: '8.0.x'
 
       - name: Debug - List repository structure
         run: |
           pwd
           ls -R src/cart
+          ls -R pb
 
       - name: Restore dependencies
         run: |
@@ -34,7 +36,7 @@ jobs:
           cd src/cart/src
           dotnet build cart.csproj --no-restore --configuration Release
 
-      # Optional: Add unit tests if available
+      # Optional: Run tests if available
       # - name: Run tests
       #   run: |
       #     cd src/cart/src
@@ -48,6 +50,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Debug - Check proto file exists
+        run: |
+          ls -R pb
+
+      - name: Copy demo.proto to service directory
+        run: |
+          mkdir -p src/cart/src/proto
+          cp pb/demo.proto src/cart/src/proto/demo.proto
+
       - name: Docker Login
         uses: docker/login-action@v3
         with:
@@ -58,7 +69,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: src/cart/src
-          file: src/cart/src/Dockerfile  # Adjust if your Dockerfile is here, else point to its actual path
+          file: src/cart/src/Dockerfile  # Adjust if Dockerfile is elsewhere
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/cart:${{ github.run_id }}
 
