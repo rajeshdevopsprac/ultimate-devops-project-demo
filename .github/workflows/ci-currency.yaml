@@ -20,6 +20,15 @@ jobs:
           sudo apt update
           sudo apt install -y build-essential cmake protobuf-compiler libprotobuf-dev
 
+          # Install gRPC
+          git clone --recurse-submodules -b v1.60.0 https://github.com/grpc/grpc
+          cd grpc
+          mkdir -p cmake/build
+          cd cmake/build
+          cmake ../..
+          make -j4
+          sudo make install
+
       - name: Build currency service
         run: |
           cd src/currency
@@ -31,8 +40,7 @@ jobs:
       - name: Run tests
         run: |
           cd src/currency/build
-          # Add any unit or integration test commands here if available
-          echo "No explicit tests defined for currency service."
+          echo "No explicit tests defined for currency service build."
 
   docker:
     runs-on: ubuntu-latest
@@ -51,7 +59,7 @@ jobs:
       - name: Docker Build & Push
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: src/currency
           file: src/currency/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/currency:${{ github.run_id }}
