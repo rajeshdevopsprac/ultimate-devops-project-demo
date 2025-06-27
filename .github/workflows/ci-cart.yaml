@@ -3,7 +3,7 @@ name: ci-cart
 on:
   push:
     paths:
-      - 'src/cart/**'
+      - 'src/**'
   workflow_dispatch:
 
 jobs:
@@ -19,20 +19,26 @@ jobs:
         with:
           dotnet-version: '8.0.x'  # Adjust if targeting a different .NET version
 
+      - name: Debug - List repository structure
+        run: |
+          pwd
+          ls -la
+          ls -la src
+
       - name: Restore dependencies
         run: |
-          cd src/cart
+          cd src
           dotnet restore cart.csproj
 
       - name: Build
         run: |
-          cd src/cart
+          cd src
           dotnet build cart.csproj --no-restore --configuration Release
 
-      # Optional: Run unit tests if available
+      # Optional: Add unit tests if available
       # - name: Run tests
       #   run: |
-      #     cd src/cart
+      #     cd src
       #     dotnet test cart.csproj --no-build --configuration Release
 
   docker:
@@ -52,8 +58,8 @@ jobs:
       - name: Docker Build & Push
         uses: docker/build-push-action@v6
         with:
-          context: src/cart
-          file: src/cart/Dockerfile
+          context: src
+          file: src/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/cart:${{ github.run_id }}
 
